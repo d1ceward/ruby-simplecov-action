@@ -1,0 +1,7 @@
+name: 'Rails SimpleCov'
+description: 'Rails SimpleCov github action reporting'
+author: D1ceWard
+inputs:
+runs:
+  using: 'node12'
+  main: 'dist/index.js'

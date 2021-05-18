@@ -1,7 +1,10 @@
-name: 'Rails SimpleCov'
-description: 'Rails SimpleCov github action reporting'
+name: Ruby SimpleCov
+description: Ruby SimpleCov github action reporting
 author: D1ceWard
 inputs:
+  token:
+    description: Github generated token
+    required: true
 runs:
   using: 'node12'
   main: 'dist/index.js'

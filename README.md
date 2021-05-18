@@ -1,1 +1,1 @@
-# rails-simplecov-action
+# ruby-simplecov-action

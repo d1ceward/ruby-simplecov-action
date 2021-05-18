@@ -1,8 +1,8 @@
 {
-  "name": "rails-simplecov-action",
+  "name": "ruby-simplecov-action",
   "version": "0.1.0",
   "private": true,
-  "description": "Rails SimpleCov github action reporting",
+  "description": "Ruby SimpleCov github action reporting",
   "main": "lib/main.js",
   "scripts": {
     "build": "tsc",
@@ -10,10 +10,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/D1ceWard/rails-simplecov-action.git"
+    "url": "git+https://github.com/D1ceWard/ruby-simplecov-action.git"
   },
   "keywords": [
-    "rails",
+    "ruby",
     "simplecov",
     "actions"
   ],

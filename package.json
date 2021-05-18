@@ -20,10 +20,11 @@
   "author": "D1ceWard",
   "license": "MIT",
   "dependencies": {
-    "@actions/core": "^1.2.6"
+    "@actions/core": "^1.2.6",
+    "@actions/github": "^5.0.0"
   },
   "devDependencies": {
-    "@vercel/ncc": "^0.27.0",
+    "@vercel/ncc": "^0.28.5",
     "typescript": "^4.1.3"
   }
 }

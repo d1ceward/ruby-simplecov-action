@@ -26,20 +26,28 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+const path = __importStar(__nccwpck_require__(622));
+const fs = __importStar(__nccwpck_require__(747));
 const core = __importStar(__nccwpck_require__(186));
 const github = __importStar(__nccwpck_require__(438));
+const WORKSPACE = process.env.GITHUB_WORKSPACE;
+function parseLastRun(filePath) {
+    const content = fs.readFileSync(path.resolve(WORKSPACE, filePath));
+    return JSON.parse(content.toString());
+}
 async function run() {
     try {
         const pullRequestId = github.context.issue.number;
         if (!pullRequestId) {
             throw new Error('Cannot find the PR id');
         }
+        const coveredPercent = parseLastRun('head-coverage-reports/.last_run.json');
         const octokit = github.getOctokit(core.getInput('token'));
         await octokit.rest.issues.createComment({
             owner: github.context.repo.owner,
             repo: github.context.repo.repo,
             issue_number: pullRequestId,
-            body: 'Test'
+            body: `Test coverage percent: ${coveredPercent}`
         });
     }
     catch (error) {

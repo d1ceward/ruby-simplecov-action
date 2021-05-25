@@ -1,6 +1,48 @@
 require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
+/***/ 667:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.comment = void 0;
+const core = __importStar(__nccwpck_require__(186));
+const github = __importStar(__nccwpck_require__(438));
+async function comment(pullRequestId, message) {
+    const octokit = github.getOctokit(core.getInput('token'));
+    await octokit.rest.issues.createComment({
+        owner: github.context.repo.owner,
+        repo: github.context.repo.repo,
+        issue_number: pullRequestId,
+        body: `## Ruby Simplecov Repor\n${message}`
+    });
+}
+exports.comment = comment;
+
+
+/***/ }),
+
 /***/ 109:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -30,6 +72,7 @@ const path = __importStar(__nccwpck_require__(622));
 const fs = __importStar(__nccwpck_require__(747));
 const core = __importStar(__nccwpck_require__(186));
 const github = __importStar(__nccwpck_require__(438));
+const comment_1 = __nccwpck_require__(667);
 const WORKSPACE = process.env.GITHUB_WORKSPACE;
 function parseLastRun(filePath) {
     const content = fs.readFileSync(path.resolve(WORKSPACE, filePath));
@@ -39,16 +82,11 @@ async function run() {
     try {
         const pullRequestId = github.context.issue.number;
         if (!pullRequestId) {
-            throw new Error('Cannot find the PR id');
+            core.warning('Cannot find the PR id');
+            return;
         }
         const coveredPercent = parseLastRun('head-coverage-reports/.last_run.json');
-        const octokit = github.getOctokit(core.getInput('token'));
-        await octokit.rest.issues.createComment({
-            owner: github.context.repo.owner,
-            repo: github.context.repo.repo,
-            issue_number: pullRequestId,
-            body: `Test coverage percent: ${coveredPercent}`
-        });
+        await comment_1.comment(pullRequestId, `Test coverage percent: ${coveredPercent}`);
     }
     catch (error) {
         core.setFailed(error.message);

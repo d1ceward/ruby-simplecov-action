@@ -2,12 +2,13 @@ import * as path from 'path'
 import * as fs from 'fs'
 import * as core from '@actions/core'
 import * as github from '@actions/github'
+import { comment } from './comment'
 
 const WORKSPACE: string = process.env.GITHUB_WORKSPACE!
 
-interface LastRun {
+type LastRun = {
   result: {
-    line?: number
+    line: number
   }
 }
 
@@ -20,19 +21,13 @@ async function run(): Promise<void> {
   try {
     const pullRequestId = github.context.issue.number
     if (!pullRequestId) {
-      throw new Error('Cannot find the PR id')
+      core.warning('Cannot find the PR id')
+      return
     }
 
     const coveredPercent = parseLastRun('head-coverage-reports/.last_run.json')
 
-    const octokit = github.getOctokit(core.getInput('token'))
-
-    await octokit.rest.issues.createComment({
-      owner: github.context.repo.owner,
-      repo: github.context.repo.repo,
-      issue_number: pullRequestId,
-      body: `Test coverage percent: ${coveredPercent}`
-    })
+    await comment(pullRequestId, `Test coverage percent: ${coveredPercent}`)
   }
   catch (error) {
     core.setFailed(error.message)

@@ -1,13 +1,38 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
 
-export async function comment(pullRequestId: number, message: string): Promise<void> {
+const HEADER: string = '## Ruby Simplecov Report'
+
+async function findComment(octokit: any, pullRequestId: number) {
+  const { data: commentList } = await octokit.rest.issues.listComments({
+    owner: github.context.repo.owner,
+    repo: github.context.repo.repo,
+    issue_number: pullRequestId
+  })
+
+  return commentList.find((comment: any) => comment.body.startsWith(HEADER))
+}
+
+export default async function comment(pullRequestId: number, message: string): Promise<void> {
   const octokit = github.getOctokit(core.getInput('token'))
+  const comment = await findComment(octokit, pullRequestId)
+  const body = `${HEADER}\n${message}`
+
+  if (comment) {
+    if (comment.body === body)
+      return
+
+    await octokit.rest.issues.deleteComment({
+      owner: github.context.repo.owner,
+      repo: github.context.repo.repo,
+      comment_id: comment.id
+    })
+  }
 
   await octokit.rest.issues.createComment({
     owner: github.context.repo.owner,
     repo: github.context.repo.repo,
     issue_number: pullRequestId,
-    body: `## Ruby Simplecov Repor\n${message}`
+    body: body
   })
 }

@@ -2,7 +2,7 @@ import * as path from 'path'
 import * as fs from 'fs'
 import * as core from '@actions/core'
 import * as github from '@actions/github'
-import { comment } from './comment'
+import comment from './comment'
 
 const WORKSPACE: string = process.env.GITHUB_WORKSPACE!
 
@@ -14,6 +14,7 @@ type LastRun = {
 
 function parseLastRun(filePath: string): LastRun {
   const content = fs.readFileSync(path.resolve(WORKSPACE, filePath))
+
   return JSON.parse(content.toString()) as LastRun
 }
 

@@ -26,19 +26,38 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.comment = void 0;
 const core = __importStar(__nccwpck_require__(186));
 const github = __importStar(__nccwpck_require__(438));
+const HEADER = '## Ruby Simplecov Report';
+async function findComment(octokit, pullRequestId) {
+    const { data: commentList } = await octokit.rest.issues.listComments({
+        owner: github.context.repo.owner,
+        repo: github.context.repo.repo,
+        issue_number: pullRequestId
+    });
+    return commentList.find((comment) => comment.body.startsWith(HEADER));
+}
 async function comment(pullRequestId, message) {
     const octokit = github.getOctokit(core.getInput('token'));
+    const comment = await findComment(octokit, pullRequestId);
+    const body = `${HEADER}\n${message}`;
+    if (comment) {
+        if (comment.body === body)
+            return;
+        await octokit.rest.issues.deleteComment({
+            owner: github.context.repo.owner,
+            repo: github.context.repo.repo,
+            comment_id: comment.id
+        });
+    }
     await octokit.rest.issues.createComment({
         owner: github.context.repo.owner,
         repo: github.context.repo.repo,
         issue_number: pullRequestId,
-        body: `## Ruby Simplecov Repor\n${message}`
+        body: body
     });
 }
-exports.comment = comment;
+exports.default = comment;
 
 
 /***/ }),
@@ -67,12 +86,15 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const path = __importStar(__nccwpck_require__(622));
 const fs = __importStar(__nccwpck_require__(747));
 const core = __importStar(__nccwpck_require__(186));
 const github = __importStar(__nccwpck_require__(438));
-const comment_1 = __nccwpck_require__(667);
+const comment_1 = __importDefault(__nccwpck_require__(667));
 const WORKSPACE = process.env.GITHUB_WORKSPACE;
 function parseLastRun(filePath) {
     const content = fs.readFileSync(path.resolve(WORKSPACE, filePath));
@@ -86,7 +108,7 @@ async function run() {
             return;
         }
         const coveredPercent = parseLastRun('head-coverage-reports/.last_run.json');
-        await comment_1.comment(pullRequestId, `Test coverage percent: ${coveredPercent}`);
+        await comment_1.default(pullRequestId, `Test coverage percent: ${coveredPercent}`);
     }
     catch (error) {
         core.setFailed(error.message);

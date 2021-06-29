@@ -97,26 +97,35 @@ const github = __importStar(__nccwpck_require__(438));
 const markdown_table_1 = __nccwpck_require__(62);
 const comment_1 = __importDefault(__nccwpck_require__(667));
 const WORKSPACE = process.env.GITHUB_WORKSPACE;
-function parseLastRun(filePath) {
+function parseFile(filePath) {
     const content = fs.readFileSync(path.resolve(WORKSPACE, filePath));
     return JSON.parse(content.toString());
 }
-function summaryTable() {
-    const baseCoveredPercent = parseLastRun('base-coverage-reports/.last_run.json');
-    const headCoveredPercent = parseLastRun('head-coverage-reports/.last_run.json');
+function summaryTable(baseCoveredPercent, headCoveredPercent, threshold) {
     return markdown_table_1.markdownTable([
-        ['Base Coverage', 'Head Coverage'],
-        [`${baseCoveredPercent.result.line}%`, `${headCoveredPercent.result.line}%`]
+        ['Base Coverage', 'Head Coverage', 'Threshold'],
+        [`${baseCoveredPercent}%`, `${headCoveredPercent}%`, `${threshold}%`]
     ]);
 }
 async function run() {
     try {
+        const threshold = Number.parseInt(core.getInput('threshold'), 10);
         const pullRequestId = github.context.issue.number;
         if (!pullRequestId) {
             core.warning('Cannot find the PR id');
             return;
         }
-        await comment_1.default(pullRequestId, summaryTable());
+        const lastRunPercentage = {
+            base: parseFile('base-coverage-reports/.last_run.json').result.line,
+            head: parseFile('head-coverage-reports/.last_run.json').result.line
+        };
+        const resultSets = {
+            base: parseFile('base-coverage-reports/.resultset.json'),
+            head: parseFile('head-coverage-reports/.resultset.json')
+        };
+        await comment_1.default(pullRequestId, summaryTable(lastRunPercentage.base, lastRunPercentage.head, threshold));
+        if (lastRunPercentage.base < threshold)
+            throw new Error(`Coverage is less than ${threshold}%. (${lastRunPercentage.base}%)`);
     }
     catch (error) {
         core.setFailed(error.message);

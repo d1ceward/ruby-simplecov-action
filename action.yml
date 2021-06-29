@@ -5,6 +5,10 @@ inputs:
   token:
     description: Github generated token
     required: true
+  threshold:
+    description: Threshold
+    default: "100"
+    required: false
 runs:
   using: 'node12'
   main: 'dist/index.js'

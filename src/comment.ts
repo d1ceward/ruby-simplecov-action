@@ -13,10 +13,14 @@ async function findComment(octokit: any, pullRequestId: number) {
   return commentList.find((comment: any) => comment.body.startsWith(HEADER))
 }
 
-export default async function comment(pullRequestId: number, message: string): Promise<void> {
+export default async function comment(
+  pullRequestId: number,
+  summaryMessage: string,
+  differenceMessage: string
+): Promise<void> {
   const octokit = github.getOctokit(core.getInput('token'))
   const comment = await findComment(octokit, pullRequestId)
-  const body = `${HEADER}\n${message}`
+  const body = `${HEADER}\n${summaryMessage}\n## Coverage difference\n${differenceMessage}`
 
   if (comment) {
     if (comment.body === body)

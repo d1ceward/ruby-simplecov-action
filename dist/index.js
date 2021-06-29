@@ -37,10 +37,10 @@ async function findComment(octokit, pullRequestId) {
     });
     return commentList.find((comment) => comment.body.startsWith(HEADER));
 }
-async function comment(pullRequestId, message) {
+async function comment(pullRequestId, summaryMessage, differenceMessage) {
     const octokit = github.getOctokit(core.getInput('token'));
     const comment = await findComment(octokit, pullRequestId);
-    const body = `${HEADER}\n${message}`;
+    const body = `${HEADER}\n${summaryMessage}\n## Coverage difference\n${differenceMessage}`;
     if (comment) {
         if (comment.body === body)
             return;
@@ -97,15 +97,70 @@ const github = __importStar(__nccwpck_require__(438));
 const markdown_table_1 = __nccwpck_require__(62);
 const comment_1 = __importDefault(__nccwpck_require__(667));
 const WORKSPACE = process.env.GITHUB_WORKSPACE;
+function floorPrecised(number, precision) {
+    var power = Math.pow(10, precision);
+    return Math.floor(number * power) / power;
+}
 function parseFile(filePath) {
     const content = fs.readFileSync(path.resolve(WORKSPACE, filePath));
     return JSON.parse(content.toString());
 }
-function summaryTable(baseCoveredPercent, headCoveredPercent, threshold) {
+function linesCoverage(lines) {
+    const effectiveLines = lines.filter((hitNumber) => hitNumber !== null);
+    const totalLines = effectiveLines.length;
+    if (totalLines === 0)
+        return 100;
+    const covered = effectiveLines.filter((hitNumber) => hitNumber > 0).length;
+    return floorPrecised((covered / totalLines) * 100, 2);
+}
+function filesCoverage(resultSet) {
+    const coverages = resultSet['RSpec']['coverage'];
+    let files = new Map();
+    for (const filename of Object.keys(coverages)) {
+        const coverage = coverages[filename];
+        files.set(filename, linesCoverage(coverage.lines));
+    }
+    return files;
+}
+function mergeFilenames(baseCoverage, headCoverage) {
+    const basefiles = baseCoverage.keys();
+    const headfiles = headCoverage.keys();
+    const files = new Set([...basefiles, ...headfiles]);
+    return Array.from(files).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+}
+function formatFileDifference(filename, baseCoverage, headCoverage) {
+    let mainPercentage = '';
+    let differencePercentage = '';
+    if (headCoverage)
+        mainPercentage = ` ${headCoverage}%`;
+    if (baseCoverage && headCoverage)
+        differencePercentage = ` (${headCoverage - baseCoverage}%)`;
+    const newFile = !baseCoverage && headCoverage ? 'NEW' : '';
+    const deletedFile = baseCoverage && !headCoverage ? 'DELETE' : '';
+    return [filename, `${newFile}${deletedFile}${mainPercentage}${differencePercentage}`];
+}
+function coveragesDifference(baseCoverage, headCoverage) {
+    const difference = [];
+    for (const filename of mergeFilenames(baseCoverage, headCoverage)) {
+        const baseFile = baseCoverage.get(filename);
+        const headFile = headCoverage.get(filename);
+        if (baseFile !== headFile)
+            difference.push(formatFileDifference(filename, baseCoverage, headCoverage));
+    }
+    return difference;
+}
+function summaryTable(basePercent, headPercent, threshold) {
     return markdown_table_1.markdownTable([
         ['Base Coverage', 'Head Coverage', 'Threshold'],
-        [`${baseCoveredPercent}%`, `${headCoveredPercent}%`, `${threshold}%`]
+        [`${basePercent}%`, `${headPercent}%`, `${threshold}%`]
     ]);
+}
+function differenceTable(baseResultSet, headResultSet) {
+    const difference = coveragesDifference(baseResultSet, headResultSet);
+    if (difference.length === 0)
+        return 'No differences';
+    else
+        return markdown_table_1.markdownTable([['Filename', 'Lines'], ...difference]);
 }
 async function run() {
     try {
@@ -115,17 +170,17 @@ async function run() {
             core.warning('Cannot find the PR id');
             return;
         }
-        const lastRunPercentage = {
+        const lastRunPercentages = {
             base: parseFile('base-coverage-reports/.last_run.json').result.line,
             head: parseFile('head-coverage-reports/.last_run.json').result.line
         };
         const resultSets = {
-            base: parseFile('base-coverage-reports/.resultset.json'),
-            head: parseFile('head-coverage-reports/.resultset.json')
+            base: filesCoverage(parseFile('base-coverage-reports/.resultset.json')),
+            head: filesCoverage(parseFile('head-coverage-reports/.resultset.json'))
         };
-        await comment_1.default(pullRequestId, summaryTable(lastRunPercentage.base, lastRunPercentage.head, threshold));
-        if (lastRunPercentage.base < threshold)
-            throw new Error(`Coverage is less than ${threshold}%. (${lastRunPercentage.base}%)`);
+        await comment_1.default(pullRequestId, summaryTable(lastRunPercentages.base, lastRunPercentages.head, threshold), differenceTable(resultSets.base, resultSets.head));
+        if (lastRunPercentages.base < threshold)
+            throw new Error(`Coverage is less than ${threshold}%. (${lastRunPercentages.base}%)`);
     }
     catch (error) {
         core.setFailed(error.message);

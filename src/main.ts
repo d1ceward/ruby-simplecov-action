@@ -20,7 +20,7 @@ function parseFile(filePath: string) {
 }
 
 function linesCoverage(lines: any): number {
-  const effectiveLines = lines.filter((hitNumber?: number) => hitNumber !== null) as number[]
+  const effectiveLines = lines.filter((hitNumber: (number | null)) => hitNumber !== null) as number[]
   const totalLines = effectiveLines.length
 
   if (totalLines === 0)
@@ -32,13 +32,11 @@ function linesCoverage(lines: any): number {
 }
 
 function filesCoverage(resultSet: any) {
-  const coverages = resultSet['RSpec']['coverage']
+  const coverage = resultSet['RSpec']['coverage']
   let files = new Map()
 
-  for (const filename of Object.keys(coverages)) {
-    const coverage = coverages[filename]
-
-    files.set(filename, linesCoverage(coverage.lines))
+  for (const filename of Object.keys(coverage)) {
+    files.set(filename, linesCoverage(coverage[filename].lines))
   }
 
   return files
@@ -52,17 +50,17 @@ function mergeFilenames(baseCoverage: any, headCoverage: any): string[] {
   return Array.from(files).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
 }
 
-function formatFileDifference(filename: string, baseCoverage: any, headCoverage: any): string[] {
+function formatFileDifference(filename: string, from?: number, to?: number): string[] {
   let mainPercentage = ''
   let differencePercentage = ''
 
-  if (headCoverage)
-    mainPercentage = ` ${headCoverage}%`
-  if (baseCoverage && headCoverage)
-    differencePercentage = ` (${headCoverage - baseCoverage}%)`
+  if (to)
+    mainPercentage = ` ${to}%`
+  if (from && to)
+    differencePercentage = ` (${to - from}%)`
 
-  const newFile = !baseCoverage && headCoverage ? 'NEW' : ''
-  const deletedFile = baseCoverage && !headCoverage ? 'DELETE' : ''
+  const newFile = !from && to ? 'NEW' : ''
+  const deletedFile = from && !to ? 'DELETE' : ''
 
   return [filename, `${newFile}${deletedFile}${mainPercentage}${differencePercentage}`]
 }
@@ -75,7 +73,7 @@ function coveragesDifference(baseCoverage: any, headCoverage: any) {
     const headFile = headCoverage.get(filename)
 
     if (baseFile !== headFile)
-      difference.push(formatFileDifference(filename, baseCoverage, headCoverage))
+      difference.push(formatFileDifference(filename, baseFile, headFile))
   }
 
   return difference

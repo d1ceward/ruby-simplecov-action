@@ -114,11 +114,10 @@ function linesCoverage(lines) {
     return floorPrecised((covered / totalLines) * 100, 2);
 }
 function filesCoverage(resultSet) {
-    const coverages = resultSet['RSpec']['coverage'];
+    const coverage = resultSet['RSpec']['coverage'];
     let files = new Map();
-    for (const filename of Object.keys(coverages)) {
-        const coverage = coverages[filename];
-        files.set(filename, linesCoverage(coverage.lines));
+    for (const filename of Object.keys(coverage)) {
+        files.set(filename, linesCoverage(coverage[filename].lines));
     }
     return files;
 }
@@ -128,15 +127,15 @@ function mergeFilenames(baseCoverage, headCoverage) {
     const files = new Set([...basefiles, ...headfiles]);
     return Array.from(files).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
 }
-function formatFileDifference(filename, baseCoverage, headCoverage) {
+function formatFileDifference(filename, from, to) {
     let mainPercentage = '';
     let differencePercentage = '';
-    if (headCoverage)
-        mainPercentage = ` ${headCoverage}%`;
-    if (baseCoverage && headCoverage)
-        differencePercentage = ` (${headCoverage - baseCoverage}%)`;
-    const newFile = !baseCoverage && headCoverage ? 'NEW' : '';
-    const deletedFile = baseCoverage && !headCoverage ? 'DELETE' : '';
+    if (to)
+        mainPercentage = ` ${to}%`;
+    if (from && to)
+        differencePercentage = ` (${to - from}%)`;
+    const newFile = !from && to ? 'NEW' : '';
+    const deletedFile = from && !to ? 'DELETE' : '';
     return [filename, `${newFile}${deletedFile}${mainPercentage}${differencePercentage}`];
 }
 function coveragesDifference(baseCoverage, headCoverage) {
@@ -145,7 +144,7 @@ function coveragesDifference(baseCoverage, headCoverage) {
         const baseFile = baseCoverage.get(filename);
         const headFile = headCoverage.get(filename);
         if (baseFile !== headFile)
-            difference.push(formatFileDifference(filename, baseCoverage, headCoverage));
+            difference.push(formatFileDifference(filename, baseFile, headFile));
     }
     return difference;
 }

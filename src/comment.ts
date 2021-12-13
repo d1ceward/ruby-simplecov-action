@@ -7,13 +7,13 @@ async function findComment(octokit: any, pullRequestId: number) {
   const { data: commentList } = await octokit.rest.issues.listComments({
     owner: github.context.repo.owner,
     repo: github.context.repo.repo,
-    issue_number: pullRequestId
+    issue_number: pullRequestId // eslint-disable-line camelcase
   })
 
   return commentList.find((comment: any) => comment.body.startsWith(HEADER))
 }
 
-export default async function comment(
+export default async function addComment(
   pullRequestId: number,
   summaryMessage: string,
   differenceMessage: string
@@ -29,14 +29,14 @@ export default async function comment(
     await octokit.rest.issues.deleteComment({
       owner: github.context.repo.owner,
       repo: github.context.repo.repo,
-      comment_id: comment.id
+      comment_id: comment.id // eslint-disable-line camelcase
     })
   }
 
   await octokit.rest.issues.createComment({
     owner: github.context.repo.owner,
     repo: github.context.repo.repo,
-    issue_number: pullRequestId,
-    body: body
+    issue_number: pullRequestId, // eslint-disable-line camelcase
+    body
   })
 }

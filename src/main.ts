@@ -3,7 +3,7 @@ import * as fs from 'fs'
 import * as core from '@actions/core'
 import * as github from '@actions/github'
 import { markdownTable } from 'markdown-table'
-import comment from './comment'
+import addComment from './comment'
 
 const WORKSPACE: string = process.env.GITHUB_WORKSPACE!
 
@@ -97,25 +97,23 @@ function differenceTable(baseResultSet: any, headResultSet: any): string {
 
 async function run(): Promise<void> {
   try {
-    const threshold: number = Number.parseInt(core.getInput('threshold'), 10)
-    const pullRequestId = github.context.issue.number
-
-    if (!pullRequestId) {
-      core.warning('Cannot find the PR id')
+    if (github.context.payload.pull_request == null) {
+      core.warning('Cannot find the pull request')
       return
     }
 
+    const threshold: number = Number.parseInt(core.getInput('threshold'), 10)
+    const pullRequestId = github.context.payload.pull_request.number
     const lastRunPercentages = {
       base: parseFile('base-coverage-reports/.last_run.json').result.line,
       head: parseFile('head-coverage-reports/.last_run.json').result.line
     }
-
     const resultSets = {
       base: filesCoverage(parseFile('base-coverage-reports/.resultset.json')),
       head: filesCoverage(parseFile('head-coverage-reports/.resultset.json'))
     }
 
-    await comment(
+    await addComment(
       pullRequestId,
       summaryTable(lastRunPercentages.base, lastRunPercentages.head, threshold),
       differenceTable(resultSets.base, resultSets.head)
@@ -124,7 +122,7 @@ async function run(): Promise<void> {
     if (lastRunPercentages.base < threshold)
       throw new Error(`Coverage is less than ${threshold}%. (${lastRunPercentages.base}%)`)
   }
-  catch (error) {
+  catch (error: any) {
     core.setFailed(error.message)
   }
 }

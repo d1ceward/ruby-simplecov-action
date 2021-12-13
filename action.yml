@@ -1,5 +1,5 @@
 name: Ruby SimpleCov
-description: Ruby SimpleCov github action reporting
+description: Github action to print a comment on the pull request with coverage changes from simplecov
 author: D1ceWard
 inputs:
   token:
